@@ -1,0 +1,22 @@
+{
+  "name": "room-booking-api-v3",
+  "version": "3.0.0",
+  "description": "ZTPAI - Zadanie 03 - Room Booking API: PostgreSQL, relacje i współbieżność",
+  "main": "src/server.js",
+  "scripts": {
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "migrate": "knex migrate:latest",
+    "rollback": "knex migrate:rollback",
+    "seed": "knex seed:run",
+    "start": "node src/server.js",
+    "start:debug": "DEBUG=knex:query node src/server.js",
+    "double-booking": "node scripts/double-booking.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "knex": "^3.1.0",
+    "pg": "^8.16.0",
+    "zod": "^4.1.0"
+  }
+}

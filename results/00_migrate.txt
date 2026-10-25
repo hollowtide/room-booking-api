@@ -1,0 +1,6 @@
+$ npx knex migrate:rollback --all
+Batch 2 rolled back: 2 migrations
+$ npx knex migrate:latest
+Batch 1 run: 2 migrations
+$ npx knex seed:run
+Ran 1 seed files

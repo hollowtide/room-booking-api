@@ -1,0 +1,51 @@
+=== GET /api/reservations?roomId=1&status=CONFIRMED
+meta: {"page": 1, "limit": 20, "total": 4, "totalPages": 1}
+  id=1 room=101 (Budynek A) 2026-11-10T10:00:00.000Z participants=20 CONFIRMED
+  id=10 room=101 (Budynek A) 2026-12-06T08:00:00.000Z participants=5 CONFIRMED
+  id=15 room=101 (Budynek A) 2026-12-11T08:00:00.000Z participants=5 CONFIRMED
+  id=20 room=101 (Budynek A) 2026-12-16T08:00:00.000Z participants=5 CONFIRMED
+2026-10-25T07:21:05.555Z knex:query select "reservations"."id", "reservations"."room_id", "reservations"."reserved_by", "reservations"."participants", "reservations"."start_time", "reservations"."end_time", "reservations"."status", "reservations"."created_at", "reservations"."cancelled_at", "rooms"."name" as "room_name", "rooms"."building_id", "buildings"."name" as "building_name" from "reservations" inner join "rooms" on "rooms"."id" = "reservations"."room_id" inner join "buildings" on "buildings"."id" = "rooms"."building_id" where "reservations"."room_id" = $1 and "reservations"."status" = $2 order by "reservations"."start_time" asc, "reservations"."id" asc limit $3 trx4
+2026-10-25T07:21:05.558Z knex:query select count("reservations"."id") as "count" from "reservations" inner join "rooms" on "rooms"."id" = "reservations"."room_id" where "reservations"."room_id" = $1 and "reservations"."status" = $2 limit $3 trx4
+[e63d2d69-7f82-4ad7-ac6d-92b3c9e0ec91] GET /api/reservations?roomId=1&status=CONFIRMED -> 200 (10.0 ms)
+
+=== GET /api/reservations?buildingId=1&sort=-participants&limit=3&page=1
+meta: {"page": 1, "limit": 3, "total": 12, "totalPages": 4}
+  id=1 room=101 (Budynek A) 2026-11-10T10:00:00.000Z participants=20 CONFIRMED
+  id=2 room=101 (Budynek A) 2026-11-10T14:00:00.000Z participants=15 CANCELLED
+  id=3 room=102 (Budynek A) 2026-11-12T09:00:00.000Z participants=10 CONFIRMED
+2026-10-25T07:21:06.091Z knex:query select "reservations"."id", "reservations"."room_id", "reservations"."reserved_by", "reservations"."participants", "reservations"."start_time", "reservations"."end_time", "reservations"."status", "reservations"."created_at", "reservations"."cancelled_at", "rooms"."name" as "room_name", "rooms"."building_id", "buildings"."name" as "building_name" from "reservations" inner join "rooms" on "rooms"."id" = "reservations"."room_id" inner join "buildings" on "buildings"."id" = "rooms"."building_id" where "rooms"."building_id" = $1 order by "reservations"."participants" desc, "reservations"."id" asc limit $2 trx5
+2026-10-25T07:21:06.092Z knex:query select count("reservations"."id") as "count" from "reservations" inner join "rooms" on "rooms"."id" = "reservations"."room_id" where "rooms"."building_id" = $1 limit $2 trx5
+[945e1f7b-eb7e-4792-924d-9faa4ff35a9b] GET /api/reservations?buildingId=1&sort=-participants&limit=3&page=1 -> 200 (5.5 ms)
+
+=== GET /api/reservations?from=2026-11-10T11:00:00Z&to=2026-11-10T11:30:00Z
+meta: {"page": 1, "limit": 20, "total": 1, "totalPages": 1}
+  id=1 room=101 (Budynek A) 2026-11-10T10:00:00.000Z participants=20 CONFIRMED
+2026-10-25T07:21:06.629Z knex:query select "reservations"."id", "reservations"."room_id", "reservations"."reserved_by", "reservations"."participants", "reservations"."start_time", "reservations"."end_time", "reservations"."status", "reservations"."created_at", "reservations"."cancelled_at", "rooms"."name" as "room_name", "rooms"."building_id", "buildings"."name" as "building_name" from "reservations" inner join "rooms" on "rooms"."id" = "reservations"."room_id" inner join "buildings" on "buildings"."id" = "rooms"."building_id" where "reservations"."start_time" < $1 and "reservations"."end_time" > $2 order by "reservations"."start_time" asc, "reservations"."id" asc limit $3 trx6
+2026-10-25T07:21:06.631Z knex:query select count("reservations"."id") as "count" from "reservations" inner join "rooms" on "rooms"."id" = "reservations"."room_id" where "reservations"."start_time" < $1 and "reservations"."end_time" > $2 limit $3 trx6
+[2aa775db-690d-42cd-acd9-2e1152462bbf] GET /api/reservations?from=2026-11-10T11:00:00Z&to=2026-11-10T11:30:00Z -> 200 (12.1 ms)
+
+=== GET /api/reservations?status=CONFIRMED&from=2026-12-01T00:00:00Z&to=2026-12-31T23:59:59Z&page=2&limit=5&sort=-startTime
+meta: {"page": 2, "limit": 5, "total": 15, "totalPages": 3}
+  id=15 room=101 (Budynek A) 2026-12-11T08:00:00.000Z participants=5 CONFIRMED
+  id=14 room=301 (Budynek B) 2026-12-10T08:00:00.000Z participants=5 CONFIRMED
+  id=13 room=101 (Budynek B) 2026-12-09T08:00:00.000Z participants=5 CONFIRMED
+  id=12 room=201 (Budynek A) 2026-12-08T08:00:00.000Z participants=5 CONFIRMED
+  id=11 room=102 (Budynek A) 2026-12-07T08:00:00.000Z participants=5 CONFIRMED
+2026-10-25T07:21:07.155Z knex:query select "reservations"."id", "reservations"."room_id", "reservations"."reserved_by", "reservations"."participants", "reservations"."start_time", "reservations"."end_time", "reservations"."status", "reservations"."created_at", "reservations"."cancelled_at", "rooms"."name" as "room_name", "rooms"."building_id", "buildings"."name" as "building_name" from "reservations" inner join "rooms" on "rooms"."id" = "reservations"."room_id" inner join "buildings" on "buildings"."id" = "rooms"."building_id" where "reservations"."status" = $1 and "reservations"."start_time" < $2 and "reservations"."end_time" > $3 order by "reservations"."start_time" desc, "reservations"."id" asc limit $4 offset $5 trx7
+2026-10-25T07:21:07.155Z knex:query select count("reservations"."id") as "count" from "reservations" inner join "rooms" on "rooms"."id" = "reservations"."room_id" where "reservations"."status" = $1 and "reservations"."start_time" < $2 and "reservations"."end_time" > $3 limit $4 trx7
+[0e495907-2327-49f2-ab2a-9fad5b9f65cd] GET /api/reservations?status=CONFIRMED&from=2026-12-01T00:00:00Z&to=2026-12-31T23:59:59Z&page=2&limit=5&sort=-startTime -> 200 (5.7 ms)
+
+=== GET /api/reservations?page=99
+meta: {"page": 99, "limit": 20, "total": 20, "totalPages": 1}
+2026-10-25T07:21:07.691Z knex:query select "reservations"."id", "reservations"."room_id", "reservations"."reserved_by", "reservations"."participants", "reservations"."start_time", "reservations"."end_time", "reservations"."status", "reservations"."created_at", "reservations"."cancelled_at", "rooms"."name" as "room_name", "rooms"."building_id", "buildings"."name" as "building_name" from "reservations" inner join "rooms" on "rooms"."id" = "reservations"."room_id" inner join "buildings" on "buildings"."id" = "rooms"."building_id" order by "reservations"."start_time" asc, "reservations"."id" asc limit $1 offset $2 trx8
+2026-10-25T07:21:07.692Z knex:query select count("reservations"."id") as "count" from "reservations" inner join "rooms" on "rooms"."id" = "reservations"."room_id" limit $1 trx8
+[f741cee1-ae1a-4fe3-8775-aef0d67702c2] GET /api/reservations?page=99 -> 200 (6.4 ms)
+
+=== GET /api/reservations?sort=name
+{"error": {"code": "VALIDATION_ERROR", "message": "Validation failed", "details": [{"location": "query", "field": "sort", "message": "Invalid option: expected one of \"startTime\"|\"-startTime\"|\"createdAt\"|\"-createdAt\"|\"participants\"|\"-participants\""}], "requestId": "b6ab3747-30cd-42e4-bc7a-728b391401ef"}}
+[b6ab3747-30cd-42e4-bc7a-728b391401ef] GET /api/reservations?sort=name -> 400 (2.8 ms)
+
+=== GET /api/reservations?from=2026-11-10T12:00:00Z&to=2026-11-10T11:00:00Z
+{"error": {"code": "VALIDATION_ERROR", "message": "Validation failed", "details": [{"location": "query", "field": "to", "message": "to must be later than from"}], "requestId": "a0d95e11-4203-4368-8724-bef797cf0ba0"}}
+[a0d95e11-4203-4368-8724-bef797cf0ba0] GET /api/reservations?from=2026-11-10T12:00:00Z&to=2026-11-10T11:00:00Z -> 400 (1.9 ms)
+

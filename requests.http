@@ -1,0 +1,103 @@
+@base = http://localhost:3000/api
+# Przed testami: npm run seed  (stan początkowy, ID od 1)
+
+### ===== ZADANIE 2 - budynki i sale =====
+### 1. GET buildings - roomsCount (Budynek C ma 0)
+GET {{base}}/buildings
+
+### 2. GET building 1
+GET {{base}}/buildings/1
+
+### 3. POST building (201)
+POST {{base}}/buildings
+Content-Type: application/json
+
+{ "name": "Budynek D", "address": "ul. Nowa 5, Kraków" }
+
+### 4. POST building - duplikat nazwy (409)
+POST {{base}}/buildings
+Content-Type: application/json
+
+{ "name": "Budynek A", "address": "ul. Nowa 5, Kraków" }
+
+### 5. POST room - sala "101" w budynku C (201, ta sama nazwa co w budynku A)
+POST {{base}}/rooms
+Content-Type: application/json
+
+{ "buildingId": 3, "name": "101", "capacity": 40 }
+
+### 6. POST room - duplikat nazwy w tym samym budynku (409, kod 23505 z bazy)
+POST {{base}}/rooms
+Content-Type: application/json
+
+{ "buildingId": 1, "name": "101", "capacity": 40 }
+
+### 7. POST room - nieistniejący budynek (404)
+POST {{base}}/rooms
+Content-Type: application/json
+
+{ "buildingId": 99, "name": "101", "capacity": 40 }
+
+### ===== ZADANIE 3 - relacje =====
+### 8. GET room z budynkiem
+GET {{base}}/rooms/1
+
+### 9. GET sale budynku 1
+GET {{base}}/buildings/1/rooms
+
+### 10. GET sale budynku bez sal -> []  (Budynek D z kroku 3)
+GET {{base}}/buildings/4/rooms
+
+### 11. GET sale nieistniejącego budynku (404)
+GET {{base}}/buildings/99/rooms
+
+### 12. GET reservation z salą i budynkiem
+GET {{base}}/reservations/1
+
+### ===== ZADANIE 4 - pagination =====
+### 13. Lista (format data + meta)
+GET {{base}}/reservations
+
+### 14. Filtr roomId + status
+GET {{base}}/reservations?roomId=1&status=CONFIRMED
+
+### 15. Filtr budynku + sortowanie + pagination
+GET {{base}}/reservations?buildingId=1&sort=-participants&limit=2&page=2
+
+### 16. from/to - rezerwacja 10:00-12:00 widoczna dla 11:00-11:30
+GET {{base}}/reservations?from=2026-11-10T11:00:00Z&to=2026-11-10T11:30:00Z
+
+### 17. Strona poza zakresem -> 200, data: []
+GET {{base}}/reservations?page=99
+
+### 18. Nieznany sort (400)
+GET {{base}}/reservations?sort=name
+
+### 19. from >= to (400)
+GET {{base}}/reservations?from=2026-11-10T12:00:00Z&to=2026-11-10T11:00:00Z
+
+### ===== reguły (jak w zadaniu 02) =====
+### 20. POST rezerwacja nakładająca się na 10:00-12:00 (409)
+POST {{base}}/reservations
+Content-Type: application/json
+
+{ "roomId": 1, "reservedBy": "Jan Kowalski", "participants": 20, "startTime": "2026-11-10T11:00:00Z", "endTime": "2026-11-10T13:00:00Z" }
+
+### 21. POST stykająca się 12:00-13:00 (201)
+POST {{base}}/reservations
+Content-Type: application/json
+
+{ "roomId": 1, "reservedBy": "Jan Kowalski", "participants": 20, "startTime": "2026-11-10T12:00:00Z", "endTime": "2026-11-10T13:00:00Z" }
+
+### 22. POST w przedziale anulowanej rezerwacji 14:00-15:00 (201)
+POST {{base}}/reservations
+Content-Type: application/json
+
+{ "roomId": 1, "reservedBy": "Anna Nowak", "participants": 10, "startTime": "2026-11-10T14:00:00Z", "endTime": "2026-11-10T15:00:00Z" }
+
+### 23. Anulowanie rozpoczętej rezerwacji z seeda (409)
+PATCH {{base}}/reservations/5/cancel
+
+### ===== trwałość danych =====
+### 24. Po kroku 3 i 5: zatrzymaj serwer (Ctrl+C), uruchom ponownie (npm start) i wyślij:
+GET {{base}}/buildings
