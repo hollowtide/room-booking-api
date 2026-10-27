@@ -15,6 +15,17 @@ function createInMemoryBuildingsRepository(state) {
       state.buildings.push(building);
       return withCount(building);
     },
+    async update(id, changes) {
+      const b = state.buildings.find((x) => x.id === id);
+      Object.assign(b, Object.fromEntries(Object.entries(changes).filter(([, v]) => v !== undefined)));
+      return withCount(b);
+    },
+    async delete(id) {
+      if (state.rooms.some((r) => r.buildingId === id)) {
+        throw Object.assign(new Error("building in use"), { code: "23503" });
+      }
+      state.buildings = state.buildings.filter((b) => b.id !== id);
+    },
   };
 }
 

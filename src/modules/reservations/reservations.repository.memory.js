@@ -6,11 +6,16 @@ function createInMemoryReservationsRepository(state) {
   const withRoom = (r) => {
     const room = state.rooms.find((x) => x.id === r.roomId);
     const b = state.buildings.find((x) => x.id === room.buildingId);
-    return { ...r, room: { id: room.id, name: room.name, building: { id: b.id, name: b.name } } };
+    const u = state.users.find((x) => x.id === r.userId);
+    return {
+      ...r,
+      user: { id: u.id, email: u.email },
+      room: { id: room.id, name: room.name, building: { id: b.id, name: b.name } },
+    };
   };
 
   return {
-    async list({ roomId, buildingId, status, from, to, page, limit, sort }) {
+    async list({ roomId, buildingId, userId, status, from, to, page, limit, sort }) {
       const desc = sort.startsWith("-");
       const field = SORT_FIELDS[desc ? sort.slice(1) : sort];
       const items = state.reservations
@@ -19,6 +24,7 @@ function createInMemoryReservationsRepository(state) {
           (r) =>
             (roomId === undefined || r.roomId === roomId) &&
             (buildingId === undefined || r.room.building.id === buildingId) &&
+            (userId === undefined || r.userId === userId) &&
             (status === undefined || r.status === status) &&
             (to === undefined || r.startTime < new Date(to)) &&
             (from === undefined || r.endTime > new Date(from))

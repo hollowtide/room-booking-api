@@ -1,0 +1,22 @@
+Jan Kowalski (id 2) = USER właściciel, Anna Nowak (id 3) = USER obcy, admin@example.com = ADMIN
+Dla budynków i sal nie ma właściciela - kolumny USER pokazują zwykłego użytkownika.
+
+| Endpoint | brak tokenu | USER właściciel | USER obcy | ADMIN |
+|---|---|---|---|---|
+| GET /api/buildings | 401 UNAUTHORIZED | 200 | 200 | 200 |
+| GET /api/buildings/1 | 401 UNAUTHORIZED | 200 | 200 | 200 |
+| GET /api/buildings/1/rooms | 401 UNAUTHORIZED | 200 | 200 | 200 |
+| POST /api/buildings | 401 UNAUTHORIZED | 403 FORBIDDEN | 403 FORBIDDEN | 201 |
+| PATCH /api/buildings/:id | 401 UNAUTHORIZED | 403 FORBIDDEN | 403 FORBIDDEN | 200 |
+| DELETE /api/buildings/:id | 401 UNAUTHORIZED | 403 FORBIDDEN | 403 FORBIDDEN | 204 |
+| GET /api/rooms | 401 UNAUTHORIZED | 200 | 200 | 200 |
+| GET /api/rooms/1 | 401 UNAUTHORIZED | 200 | 200 | 200 |
+| POST /api/rooms | 401 UNAUTHORIZED | 403 FORBIDDEN | 403 FORBIDDEN | 201 |
+| PATCH /api/rooms/:id | 401 UNAUTHORIZED | 403 FORBIDDEN | 403 FORBIDDEN | 200 |
+| DELETE /api/rooms/:id | 401 UNAUTHORIZED | 403 FORBIDDEN | 403 FORBIDDEN | 204 |
+| GET /api/reservations | 401 UNAUTHORIZED | 200 | 200 | 200 |
+| GET /api/reservations?userId=3 (id Anny) | 401 UNAUTHORIZED | 403 FORBIDDEN | 200 | 200 |
+| POST /api/reservations | 401 UNAUTHORIZED | 201 | 201 | 201 |
+| GET /api/reservations/:id (rezerwacja Jana) | 401 UNAUTHORIZED | 200 | 404 NOT_FOUND | 200 |
+| PATCH /api/reservations/:id/cancel (rezerwacja Jana) | 401 UNAUTHORIZED | 200 | 404 NOT_FOUND | 200 |
+| GET /api/auth/me | 401 UNAUTHORIZED | 200 | 200 | 200 |

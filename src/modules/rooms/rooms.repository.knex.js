@@ -43,6 +43,15 @@ function createKnexRoomsRepository(db) {
       return this.findById(id);
     },
 
+    async update(id, { name, capacity }) {
+      await db("rooms").where({ id }).update({ name, capacity });
+      return this.findById(id);
+    },
+
+    async delete(id) {
+      await db("rooms").where({ id }).del();
+    },
+
     async lockById(id) {
       await db("rooms").where({ id }).forUpdate().first("id");
     },

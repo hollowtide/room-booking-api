@@ -1,58 +1,48 @@
-# ZTPAI – Zadanie 03 – Room Booking API: PostgreSQL, relacje i współbieżność
+# ZTPAI – Zadanie 04 – Room Booking API: authentication, authorization i konfiguracja
 
-Node.js + Express 5 + Zod + PostgreSQL 16 (Docker) + Knex.
+Node.js + Express 5 + Zod + PostgreSQL 16 (Docker) + Knex + bcryptjs + jsonwebtoken + swagger-ui-express.
 
-## Uruchomienie od zera
+## Uruchomienie
 
 ```bash
-cp .env.example .env          # i wpisz dane: postgres://postgres:postgres@localhost:5432/roombooking
+cp .env.example .env          # uzupełnij DATABASE_URL i JWT_SECRET (min. 32 znaki)
 npm install
-docker compose up -d          # PostgreSQL 16 w kontenerze roombooking-db, volume roombooking-pgdata
-npm run migrate               # npx knex migrate:latest
-npm run seed                  # npx knex seed:run (zawsze ten sam stan, ID od 1)
-npm start                     # albo: npm run start:debug  (logi SQL: DEBUG=knex:query)
+docker compose up -d
+npm run migrate
+npm run seed
+npm start                     # Swagger UI: http://localhost:3000/api/docs
 ```
 
-psql w kontenerze: `docker exec -it roombooking-db psql -U postgres -d roombooking`
+Losowy JWT_SECRET: `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`
 
-Test race condition: `npm run seed && node scripts/double-booking.js`
+Konta z seeda (tylko środowisko developerskie):
 
-## Endpointy
+| Email | Hasło | Rola |
+|---|---|---|
+| admin@example.com | admin-password-123 | ADMIN |
+| jan.kowalski@example.com | jan-password-123 | USER |
+| anna.nowak@example.com | anna-password-123 | USER |
 
-| Metoda | Ścieżka |
-|---|---|
-| GET | /api/buildings (z roomsCount) |
-| GET | /api/buildings/:id |
-| GET | /api/buildings/:id/rooms |
-| POST | /api/buildings |
-| GET | /api/rooms, /api/rooms/:id (z budynkiem) |
-| POST | /api/rooms (buildingId) |
-| GET | /api/reservations?roomId&buildingId&status&from&to&page&limit&sort |
-| GET | /api/reservations/:id |
-| POST | /api/reservations |
-| PATCH | /api/reservations/:id/cancel |
+Skrypty: `npm run permissions` (tabela uprawnień), `npm run register-race` (równoległe rejestracje),
+`npm run double-booking` (race condition z zadania 03).
 
 ## Decyzje
 
-**ON DELETE** – oba klucze obce mają `RESTRICT`.
-- `reservations.room_id → rooms`: rezerwacje to dane historyczne (kto, kiedy, ile osób). `CASCADE` po cichu skasowałby historię,
-  `SET NULL` zostawiłby rezerwacje "w powietrzu" (kolumna i tak jest NOT NULL). Salę z rezerwacjami trzeba najpierw świadomie
-  obsłużyć (np. anulować przyszłe rezerwacje), dopiero potem usunąć.
-- `rooms.building_id → buildings`: z tego samego powodu nie usuwamy budynku, który ma sale.
+**`?userId=` dla USERa → 403** (chyba że to jego własne id). Cicha ignorowana wartość zwróciłaby własne rezerwacje
+użytkownika jako odpowiedź na pytanie o kogoś innego – klient dostałby mylący wynik. 403 jasno mówi, że ten filtr
+jest dostępny tylko dla administratora. Niezależnie od parametrów backend zawsze dokłada `user_id = <id z tokenu>`
+dla roli USER.
 
-**Indeks** `(room_id, start_time, end_time)` – zapytanie o kolizje filtruje po sali i po czasie (`room_id = ? AND start_time < ? AND end_time > ?`).
+**Cudza rezerwacja → 404, nie 403.** Rezerwacje są prywatne – 403 zdradzałoby, że rezerwacja o tym id istnieje.
 
-**Który wiersz blokujemy (`FOR UPDATE`)** – wiersz **sali** (`rooms`). Nowa rezerwacja jeszcze nie istnieje, więc nie da się jej zablokować,
-a blokowanie istniejących rezerwacji nie pomaga, gdy sala nie ma jeszcze żadnej w tym przedziale. Wiersz sali jest wspólnym punktem dla
-wszystkich rezerwacji tej sali – drugi request czeka na blokadę i sprawdza kolizje dopiero po COMMIT pierwszego, więc widzi już jego
-rezerwację. Rezerwacje różnych sal się nie blokują.
+**Migracja `user_id`** działa na bazie z danymi: dodaje kolumnę jako nullable, dla każdej wartości `reserved_by`
+tworzy konto (email z imienia i nazwiska, losowe hasło – konto trzeba aktywować resetem hasła), uzupełnia `user_id`,
+ustawia NOT NULL i dopiero wtedy usuwa `reserved_by`. Funkcja `down` odtwarza `reserved_by` z emaila użytkownika.
 
-**Dlaczego sama transakcja nie wystarcza** – domyślny poziom izolacji PostgreSQL to READ COMMITTED: każde zapytanie widzi tylko dane
-zatwierdzone przed jego startem. Dwie równoległe transakcje wykonują SELECT na kolizje, zanim którakolwiek zrobi COMMIT, więc obie widzą
-pustą salę i obie robią INSERT. Transakcja daje atomowość (wszystko albo nic), ale nie szereguje równoległych odczytów – do tego potrzebna
-jest blokada (`FOR UPDATE`) albo constraint w bazie (exclusion constraint), który jest ostatnią linią obrony.
+**Login** – zły email i złe hasło dają ten sam kod `INVALID_CREDENTIALS` i ten sam komunikat. Dla nieistniejącego
+emaila i tak liczony jest bcrypt (na stałym hashu), żeby czas odpowiedzi nie zdradzał, czy konto istnieje.
 
-## Wyniki
+**Wygasły token** → 401 z kodem `TOKEN_EXPIRED` (frontend wie, że wystarczy ponowne logowanie). Inne problemy
+z tokenem → `UNAUTHORIZED` / `INVALID_TOKEN`.
 
-Katalog `results/` – wyniki migracji, `\d reservations`, próby złamania constraintów, logi SQL (N+1, pagination),
-wyniki `double-booking.js` w trzech wariantach i diff service lab2 → lab3.
+**Konfiguracja** – jedyne miejsce czytające `process.env` to `src/config/index.js` (walidacja Zod, fail fast).

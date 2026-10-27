@@ -1,103 +1,154 @@
 @base = http://localhost:3000/api
-# Przed testami: npm run seed  (stan początkowy, ID od 1)
+# Przed testami: npm run seed
 
-### ===== ZADANIE 2 - budynki i sale =====
-### 1. GET buildings - roomsCount (Budynek C ma 0)
-GET {{base}}/buildings
+### ===== ZADANIE 1 - rejestracja =====
+### 1. Rejestracja (201) - email zapisany małymi literami
+POST {{base}}/auth/register
+Content-Type: application/json
 
-### 2. GET building 1
-GET {{base}}/buildings/1
+{ "email": "Jan.Kowalski2@Example.com", "password": "bardzo-dlugie-haslo" }
 
-### 3. POST building (201)
+### 2. Rejestracja z rolą ADMIN (400 - nieznane pole role)
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{ "email": "haker@example.com", "password": "bardzo-dlugie-haslo", "role": "ADMIN" }
+
+### 3. Za krótkie hasło (400)
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{ "email": "krotkie@example.com", "password": "krotkie" }
+
+### 4. Duplikat emaila różniący się wielkością liter (409 EMAIL_TAKEN)
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{ "email": "JAN.KOWALSKI2@EXAMPLE.COM", "password": "bardzo-dlugie-haslo" }
+
+### ===== ZADANIE 2 - logowanie =====
+### 5. Logowanie Jana (200) - skopiuj accessToken do @user i wklej na jwt.io
+# @name loginUser
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "jan.kowalski@example.com", "password": "jan-password-123" }
+
+### 6. Zły email (401)
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "nikt@example.com", "password": "jan-password-123" }
+
+### 7. Złe hasło (401 - identyczna odpowiedź jak w kroku 6)
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "jan.kowalski@example.com", "password": "zle-haslo-123" }
+
+### 8. Logowanie Anny (USER obcy)
+# @name loginAnna
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "anna.nowak@example.com", "password": "anna-password-123" }
+
+### 9. Logowanie admina
+# @name loginAdmin
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "admin@example.com", "password": "admin-password-123" }
+
+@user = {{loginUser.response.body.accessToken}}
+@anna = {{loginAnna.response.body.accessToken}}
+@admin = {{loginAdmin.response.body.accessToken}}
+
+### 10. GET /me (200)
+GET {{base}}/auth/me
+Authorization: Bearer {{user}}
+
+### ===== ZADANIE 3 - przypadki 401 =====
+### 11. Brak nagłówka (401)
+GET {{base}}/rooms
+
+### 12. Zły format - Basic (401)
+GET {{base}}/rooms
+Authorization: Basic YWRtaW46YWRtaW4=
+
+### 13. Bearer bez tokenu (401)
+GET {{base}}/rooms
+Authorization: Bearer
+
+### 14. Zły podpis - zmień ostatni znak tokenu (401 INVALID_TOKEN)
+GET {{base}}/rooms
+Authorization: Bearer WKLEJ_TOKEN_Z_ZMIENIONYM_OSTATNIM_ZNAKIEM
+
+### 15. Zmieniony payload (role: ADMIN) z oryginalnym podpisem (401 INVALID_TOKEN)
+GET {{base}}/rooms
+Authorization: Bearer WKLEJ_TOKEN_Z_PODMIENIONYM_PAYLOADEM
+
+### 16. Wygasły token - serwer z JWT_EXPIRES_IN=10s, odczekaj 10 s (401 TOKEN_EXPIRED)
+GET {{base}}/auth/me
+Authorization: Bearer WKLEJ_WYGASLY_TOKEN
+
+### 17. Rezerwacja z polem userId w body (400)
+POST {{base}}/reservations
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "roomId": 3, "participants": 5, "startTime": "2026-12-01T10:00:00Z", "endTime": "2026-12-01T11:00:00Z", "userId": 3 }
+
+### 18. Rezerwacja (201) - user z tokenu, w odpowiedzi user: { id, email }
+POST {{base}}/reservations
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "roomId": 3, "participants": 5, "startTime": "2026-12-01T10:00:00Z", "endTime": "2026-12-01T11:00:00Z" }
+
+### ===== ZADANIE 4 - role i ownership =====
+### 19. USER tworzy budynek (403)
 POST {{base}}/buildings
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "name": "Budynek X", "address": "ul. Testowa 1" }
+
+### 20. ADMIN tworzy budynek (201)
+POST {{base}}/buildings
+Authorization: Bearer {{admin}}
 Content-Type: application/json
 
 { "name": "Budynek D", "address": "ul. Nowa 5, Kraków" }
 
-### 4. POST building - duplikat nazwy (409)
-POST {{base}}/buildings
-Content-Type: application/json
-
-{ "name": "Budynek A", "address": "ul. Nowa 5, Kraków" }
-
-### 5. POST room - sala "101" w budynku C (201, ta sama nazwa co w budynku A)
-POST {{base}}/rooms
-Content-Type: application/json
-
-{ "buildingId": 3, "name": "101", "capacity": 40 }
-
-### 6. POST room - duplikat nazwy w tym samym budynku (409, kod 23505 z bazy)
-POST {{base}}/rooms
-Content-Type: application/json
-
-{ "buildingId": 1, "name": "101", "capacity": 40 }
-
-### 7. POST room - nieistniejący budynek (404)
-POST {{base}}/rooms
-Content-Type: application/json
-
-{ "buildingId": 99, "name": "101", "capacity": 40 }
-
-### ===== ZADANIE 3 - relacje =====
-### 8. GET room z budynkiem
-GET {{base}}/rooms/1
-
-### 9. GET sale budynku 1
-GET {{base}}/buildings/1/rooms
-
-### 10. GET sale budynku bez sal -> []  (Budynek D z kroku 3)
-GET {{base}}/buildings/4/rooms
-
-### 11. GET sale nieistniejącego budynku (404)
-GET {{base}}/buildings/99/rooms
-
-### 12. GET reservation z salą i budynkiem
-GET {{base}}/reservations/1
-
-### ===== ZADANIE 4 - pagination =====
-### 13. Lista (format data + meta)
+### 21. USER - lista rezerwacji (tylko swoje)
 GET {{base}}/reservations
+Authorization: Bearer {{user}}
 
-### 14. Filtr roomId + status
-GET {{base}}/reservations?roomId=1&status=CONFIRMED
+### 22. USER z ?userId=3 (403)
+GET {{base}}/reservations?userId=3
+Authorization: Bearer {{user}}
 
-### 15. Filtr budynku + sortowanie + pagination
-GET {{base}}/reservations?buildingId=1&sort=-participants&limit=2&page=2
+### 23. ADMIN - wszystkie rezerwacje, filtr userId=3
+GET {{base}}/reservations?userId=3
+Authorization: Bearer {{admin}}
 
-### 16. from/to - rezerwacja 10:00-12:00 widoczna dla 11:00-11:30
-GET {{base}}/reservations?from=2026-11-10T11:00:00Z&to=2026-11-10T11:30:00Z
+### 24. Właściciel - rezerwacja 1 (200)
+GET {{base}}/reservations/1
+Authorization: Bearer {{user}}
 
-### 17. Strona poza zakresem -> 200, data: []
-GET {{base}}/reservations?page=99
+### 25. Obcy USER - rezerwacja 1 (404)
+GET {{base}}/reservations/1
+Authorization: Bearer {{anna}}
 
-### 18. Nieznany sort (400)
-GET {{base}}/reservations?sort=name
+### 26. Obcy USER - anulowanie rezerwacji 1 (404)
+PATCH {{base}}/reservations/1/cancel
+Authorization: Bearer {{anna}}
 
-### 19. from >= to (400)
-GET {{base}}/reservations?from=2026-11-10T12:00:00Z&to=2026-11-10T11:00:00Z
-
-### ===== reguły (jak w zadaniu 02) =====
-### 20. POST rezerwacja nakładająca się na 10:00-12:00 (409)
-POST {{base}}/reservations
-Content-Type: application/json
-
-{ "roomId": 1, "reservedBy": "Jan Kowalski", "participants": 20, "startTime": "2026-11-10T11:00:00Z", "endTime": "2026-11-10T13:00:00Z" }
-
-### 21. POST stykająca się 12:00-13:00 (201)
-POST {{base}}/reservations
-Content-Type: application/json
-
-{ "roomId": 1, "reservedBy": "Jan Kowalski", "participants": 20, "startTime": "2026-11-10T12:00:00Z", "endTime": "2026-11-10T13:00:00Z" }
-
-### 22. POST w przedziale anulowanej rezerwacji 14:00-15:00 (201)
-POST {{base}}/reservations
-Content-Type: application/json
-
-{ "roomId": 1, "reservedBy": "Anna Nowak", "participants": 10, "startTime": "2026-11-10T14:00:00Z", "endTime": "2026-11-10T15:00:00Z" }
-
-### 23. Anulowanie rozpoczętej rezerwacji z seeda (409)
+### 27. ADMIN - anulowanie rozpoczętej rezerwacji 5 (409 - reguły działają też dla ADMINa)
 PATCH {{base}}/reservations/5/cancel
+Authorization: Bearer {{admin}}
 
-### ===== trwałość danych =====
-### 24. Po kroku 3 i 5: zatrzymaj serwer (Ctrl+C), uruchom ponownie (npm start) i wyślij:
-GET {{base}}/buildings
+### 28. ADMIN - usunięcie budynku z salami (409 RESOURCE_IN_USE)
+DELETE {{base}}/buildings/1
+Authorization: Bearer {{admin}}

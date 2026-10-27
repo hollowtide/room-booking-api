@@ -10,4 +10,12 @@ const createRoomBody = z.strictObject({
   capacity: z.number().int().positive(),
 });
 
-module.exports = { roomIdParams, createRoomBody };
+const updateRoomBody = z
+  .strictObject({
+    name: z.string().trim().min(1).max(50),
+    capacity: z.number().int().positive(),
+  })
+  .partial()
+  .refine((b) => Object.keys(b).length > 0, { message: "At least one field is required" });
+
+module.exports = { roomIdParams, createRoomBody, updateRoomBody };

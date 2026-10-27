@@ -16,6 +16,16 @@ function createRoomsController(roomsService) {
       const room = await roomsService.createRoom(req.validated.body);
       res.status(201).location(`/api/rooms/${room.id}`).json(toRoomResponse(room));
     },
+
+    async update(req, res) {
+      const room = await roomsService.updateRoom(req.validated.params.id, req.validated.body);
+      res.json(toRoomResponse(room));
+    },
+
+    async remove(req, res) {
+      await roomsService.deleteRoom(req.validated.params.id);
+      res.status(204).end();
+    },
   };
 }
 

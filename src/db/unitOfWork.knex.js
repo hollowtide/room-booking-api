@@ -1,9 +1,11 @@
+const { createKnexUsersRepository } = require("../modules/users/users.repository.knex");
 const { createKnexBuildingsRepository } = require("../modules/buildings/buildings.repository.knex");
 const { createKnexRoomsRepository } = require("../modules/rooms/rooms.repository.knex");
 const { createKnexReservationsRepository } = require("../modules/reservations/reservations.repository.knex");
 
 function createKnexRepositories(db) {
   return {
+    users: createKnexUsersRepository(db),
     buildings: createKnexBuildingsRepository(db),
     rooms: createKnexRoomsRepository(db),
     reservations: createKnexReservationsRepository(db),

@@ -18,6 +18,16 @@ function createBuildingsController(buildingsService) {
       res.status(201).location(`/api/buildings/${building.id}`).json(toBuildingResponse(building));
     },
 
+    async update(req, res) {
+      const building = await buildingsService.updateBuilding(req.validated.params.id, req.validated.body);
+      res.json(toBuildingResponse(building));
+    },
+
+    async remove(req, res) {
+      await buildingsService.deleteBuilding(req.validated.params.id);
+      res.status(204).end();
+    },
+
     async listRooms(req, res) {
       const rooms = await buildingsService.listBuildingRooms(req.validated.params.id);
       res.json(rooms.map(toRoomResponse));

@@ -31,6 +31,15 @@ function createKnexBuildingsRepository(db) {
       const [row] = await db("buildings").insert({ name, address }).returning("*");
       return toBuilding(row);
     },
+
+    async update(id, { name, address }) {
+      await db("buildings").where({ id }).update({ name, address });
+      return this.findById(id);
+    },
+
+    async delete(id) {
+      await db("buildings").where({ id }).del();
+    },
   };
 }
 

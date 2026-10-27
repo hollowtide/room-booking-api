@@ -9,12 +9,13 @@ function toReservation(row) {
   return {
     id: row.id,
     roomId: row.room_id,
+    userId: row.user_id,
+    user: { id: row.user_id, email: row.user_email },
     room: {
       id: row.room_id,
       name: row.room_name,
       building: { id: row.building_id, name: row.building_name },
     },
-    reservedBy: row.reserved_by,
     participants: row.participants,
     startTime: row.start_time,
     endTime: row.end_time,
@@ -29,10 +30,12 @@ function createKnexReservationsRepository(db) {
     db("reservations")
       .join("rooms", "rooms.id", "reservations.room_id")
       .join("buildings", "buildings.id", "rooms.building_id")
+      .join("users", "users.id", "reservations.user_id")
       .select(
         "reservations.id",
         "reservations.room_id",
-        "reservations.reserved_by",
+        "reservations.user_id",
+        "users.email as user_email",
         "reservations.participants",
         "reservations.start_time",
         "reservations.end_time",
@@ -44,8 +47,9 @@ function createKnexReservationsRepository(db) {
         "buildings.name as building_name"
       );
 
-  function applyFilters(qb, { roomId, buildingId, status, from, to }) {
+  function applyFilters(qb, { roomId, buildingId, userId, status, from, to }) {
     if (roomId !== undefined) qb.where("reservations.room_id", roomId);
+    if (userId !== undefined) qb.where("reservations.user_id", userId);
     if (buildingId !== undefined) qb.where("rooms.building_id", buildingId);
     if (status !== undefined) qb.where("reservations.status", status);
     if (to !== undefined) qb.where("reservations.start_time", "<", to);
@@ -85,11 +89,11 @@ function createKnexReservationsRepository(db) {
       return rows.map(toReservation);
     },
 
-    async create({ roomId, reservedBy, participants, startTime, endTime, status, createdAt }) {
+    async create({ roomId, userId, participants, startTime, endTime, status, createdAt }) {
       const [{ id }] = await db("reservations")
         .insert({
           room_id: roomId,
-          reserved_by: reservedBy,
+          user_id: userId,
           participants,
           start_time: startTime,
           end_time: endTime,

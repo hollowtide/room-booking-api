@@ -1,7 +1,0 @@
-=== GET /api/reservations przy 20 rezerwacjach ===
-liczba rezerwacji w odpowiedzi: 20 | meta: {'page': 1, 'limit': 20, 'total': 20, 'totalPages': 1}
-2026-10-25T07:20:57.331Z knex:query BEGIN; trx3
-2026-10-25T07:20:57.334Z knex:query select "reservations"."id", "reservations"."room_id", "reservations"."reserved_by", "reservations"."participants", "reservations"."start_time", "reservations"."end_time", "reservations"."status", "reservations"."created_at", "reservations"."cancelled_at", "rooms"."name" as "room_name", "rooms"."building_id", "buildings"."name" as "building_name" from "reservations" inner join "rooms" on "rooms"."id" = "reservations"."room_id" inner join "buildings" on "buildings"."id" = "rooms"."building_id" order by "reservations"."start_time" asc, "reservations"."id" asc limit $1 trx3
-2026-10-25T07:20:57.335Z knex:query select count("reservations"."id") as "count" from "reservations" inner join "rooms" on "rooms"."id" = "reservations"."room_id" limit $1 trx3
-2026-10-25T07:20:57.338Z knex:query COMMIT; trx3
-[93cafd32-9eba-4a9f-8cc6-8e0f7e3c24ab] GET /api/reservations -> 200 (9.7 ms)

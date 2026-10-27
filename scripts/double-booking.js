@@ -1,19 +1,28 @@
 const db = require("../src/db/knex");
 
-const URL = "http://localhost:3000/api/reservations";
+const BASE = "http://localhost:3000/api";
+const URL = `${BASE}/reservations`;
 const N = 10;
 const BODY = {
   roomId: 3,
-  reservedBy: "Race Test",
   participants: 10,
   startTime: "2026-12-20T10:00:00Z",
   endTime: "2026-12-20T12:00:00Z",
 };
 
-async function book(i) {
-  const res = await fetch(URL, {
+async function login() {
+  const res = await fetch(`${BASE}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "jan.kowalski@example.com", password: "jan-password-123" }),
+  });
+  return (await res.json()).accessToken;
+}
+
+async function book(i, token) {
+  const res = await fetch(URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(BODY),
   });
   const json = await res.json();
@@ -27,7 +36,8 @@ async function book(i) {
     .where("end_time", ">", BODY.startTime)
     .del();
 
-  const results = await Promise.all(Array.from({ length: N }, (_, i) => book(i + 1)));
+  const token = await login();
+  const results = await Promise.all(Array.from({ length: N }, (_, i) => book(i + 1, token)));
 
   for (const r of results) console.log(`request ${String(r.i).padStart(2)}: ${r.status} ${r.info}`);
 

@@ -1,0 +1,32 @@
+Token Jana (payload): {"role":"USER","iat":1793114470,"exp":1793115370,"sub":"2"}
+Payload po podmianie roli: {"role":"ADMIN","iat":1793114470,"exp":1793115370,"sub":"2"}
+
+--- 1. brak nagłówka Authorization
+$ curl http://localhost:3000/api/rooms
+{"error":{"code":"UNAUTHORIZED","message":"Missing Authorization header","requestId":"dc0f6c80-9e01-46b7-b465-49554f5784e3"}}  [401]
+
+--- 2. zły format - Basic
+$ curl -H 'Authorization: Basic YWRtaW46YWRtaW4=' http://localhost:3000/api/rooms
+{"error":{"code":"UNAUTHORIZED","message":"Authorization header must have format: Bearer <token>","requestId":"a4efc3e1-7c26-4e68-a0d2-a8a35d493d0d"}}  [401]
+
+--- 3. Bearer bez tokenu
+$ curl -H 'Authorization: Bearer' http://localhost:3000/api/rooms
+{"error":{"code":"UNAUTHORIZED","message":"Authorization header must have format: Bearer <token>","requestId":"6c76a551-8578-4a14-be17-4aacf4b09fa9"}}  [401]
+
+--- 4. zły podpis (zmieniony ostatni znak)
+$ curl -H 'Authorization: Bearer <token>' http://localhost:3000/api/rooms
+{"error":{"code":"INVALID_TOKEN","message":"Invalid token","requestId":"12bffb4b-3d61-472a-8e1f-307261fa4d32"}}  [401]
+
+--- 5. zmieniony payload (role: ADMIN) z oryginalnym podpisem
+$ curl -H 'Authorization: Bearer <header>.<payload z ADMIN>.<oryginalny podpis>' http://localhost:3000/api/buildings (POST)
+{"error":{"code":"INVALID_TOKEN","message":"Invalid token","requestId":"37b72229-bcfe-4ff0-87ba-f0bf855ff6c7"}}  [401]
+
+--- 6. wygasły token (serwer uruchomiony z JWT_EXPIRES_IN=10s)
+$ JWT_EXPIRES_IN=10s npm start
+$ curl -X POST .../api/auth/login
+{"accessToken":"<token>
+... "expiresIn":"10s"}
+$ curl -H 'Authorization: Bearer <token>' .../api/auth/me   # od razu
+{"id":2,"email":"jan.kowalski@example.com","role":"USER","createdAt":"2026-10-27T15:21:09.786Z"}  [200]
+$ sleep 11 && curl -H 'Authorization: Bearer <token>' .../api/auth/me
+{"error":{"code":"TOKEN_EXPIRED","message":"Token expired","requestId":"97b02fdd-24d3-4dfa-9ae5-434c58f6d345"}}  [401]

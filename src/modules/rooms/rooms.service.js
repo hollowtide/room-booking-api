@@ -21,7 +21,23 @@ function createRoomsService({ runInTransaction }) {
     });
   }
 
-  return { listRooms, getRoom, createRoom };
+  async function updateRoom(id, changes) {
+    return runInTransaction(async ({ rooms }) => {
+      const room = await rooms.findById(id);
+      if (!room) throw new NotFoundError("Room");
+      return rooms.update(id, changes);
+    });
+  }
+
+  async function deleteRoom(id) {
+    return runInTransaction(async ({ rooms }) => {
+      const room = await rooms.findById(id);
+      if (!room) throw new NotFoundError("Room");
+      await rooms.delete(id);
+    });
+  }
+
+  return { listRooms, getRoom, createRoom, updateRoom, deleteRoom };
 }
 
 module.exports = { createRoomsService };

@@ -1,0 +1,16 @@
+$ JWT_SECRET=za-krotki npm start
+Invalid environment configuration:
+  JWT_SECRET: JWT_SECRET must have at least 32 characters
+(exit code 1)
+
+$ DATABASE_URL=nie-url npm start
+Invalid environment configuration:
+  DATABASE_URL: DATABASE_URL must be a valid postgres:// URL
+(exit code 1)
+
+$ DATABASE_URL=mysql://localhost/db JWT_EXPIRES_IN=15minut PORT=abc npm start
+Invalid environment configuration:
+  PORT: Invalid input: expected number, received NaN
+  DATABASE_URL: DATABASE_URL must be a valid postgres:// URL
+  JWT_EXPIRES_IN: JWT_EXPIRES_IN must look like 15m, 10s, 1h or 7d
+(exit code 1)

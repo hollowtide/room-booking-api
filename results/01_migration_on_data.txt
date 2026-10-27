@@ -1,0 +1,55 @@
+$ npx knex migrate:up   # 1/4 - tabele z zadania 03
+Batch 1 ran the following migrations:
+20261025100000_create_buildings_rooms_reservations.js
+$ npx knex migrate:up   # 2/4 - exclusion constraint
+Batch 2 ran the following migrations:
+20261025110000_add_reservations_no_overlap.js
+$ seed z zadania 03 (dane z kolumną reserved_by)
+Ran seed 01_demo.js (zadanie 03)
+
+$ psql: SELECT id, room_id, reserved_by, status FROM reservations ORDER BY id;
+ id | room_id |     reserved_by      |  status   
+----+---------+----------------------+-----------
+  1 |       1 | Jan Kowalski         | CONFIRMED
+  2 |       1 | Anna Nowak           | CANCELLED
+  3 |       2 | Piotr Zieliński      | CONFIRMED
+  4 |       4 | Katarzyna Wiśniewska | CONFIRMED
+  5 |       5 | Seed User            | CONFIRMED
+(5 rows)
+
+$ npx knex migrate:latest   # 3/4 users, 4/4 user_id zamiast reserved_by
+Batch 3 run: 2 migrations
+
+$ psql: SELECT r.id, r.room_id, r.user_id, u.email, r.status FROM reservations r JOIN users u ON u.id = r.user_id ORDER BY r.id;
+ id | room_id | user_id |              email               |  status   
+----+---------+---------+----------------------------------+-----------
+  1 |       1 |       5 | jan.kowalski@example.com         | CONFIRMED
+  2 |       1 |       1 | anna.nowak@example.com           | CANCELLED
+  3 |       2 |       3 | piotr.zielinski@example.com      | CONFIRMED
+  4 |       4 |       4 | katarzyna.wisniewska@example.com | CONFIRMED
+  5 |       5 |       2 | seed.user@example.com            | CONFIRMED
+(5 rows)
+
+$ psql: SELECT id, email, role FROM users ORDER BY id;
+ id |              email               | role 
+----+----------------------------------+------
+  1 | anna.nowak@example.com           | USER
+  2 | seed.user@example.com            | USER
+  3 | piotr.zielinski@example.com      | USER
+  4 | katarzyna.wisniewska@example.com | USER
+  5 | jan.kowalski@example.com         | USER
+(5 rows)
+
+$ npx knex migrate:rollback   # cofnięcie migracji 3 i 4 na bazie z danymi
+Batch 3 rolled back: 2 migrations
+ id | room_id |           reserved_by            |  status   
+----+---------+----------------------------------+-----------
+  1 |       1 | jan.kowalski@example.com         | CONFIRMED
+  2 |       1 | anna.nowak@example.com           | CANCELLED
+  3 |       2 | piotr.zielinski@example.com      | CONFIRMED
+  4 |       4 | katarzyna.wisniewska@example.com | CONFIRMED
+  5 |       5 | seed.user@example.com            | CONFIRMED
+(5 rows)
+
+$ npx knex migrate:latest
+Batch 3 run: 2 migrations

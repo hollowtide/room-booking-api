@@ -1,4 +1,4 @@
-const { NotFoundError, ConflictError, ValidationError } = require("../../errors/AppError");
+const { NotFoundError, ConflictError, ValidationError, ForbiddenError } = require("../../errors/AppError");
 
 const MIN_DURATION_MS = 15 * 60 * 1000;
 const MAX_DURATION_MS = 8 * 60 * 60 * 1000;
@@ -12,8 +12,12 @@ function overlaps(aStart, aEnd, bStart, bEnd) {
   return aStart < bEnd && bStart < aEnd;
 }
 
+function canAccess(reservation, currentUser) {
+  return currentUser.role === "ADMIN" || reservation.userId === currentUser.id;
+}
+
 function createReservationsService({ runInTransaction, now = () => new Date() }) {
-  async function createReservation(input) {
+  async function createReservation(input, currentUser) {
     return runInTransaction(async ({ rooms, reservations }) => {
       const room = await rooms.findById(input.roomId);
       if (!room) throw new NotFoundError("Room");
@@ -48,7 +52,7 @@ function createReservationsService({ runInTransaction, now = () => new Date() })
 
       return reservations.create({
         roomId: room.id,
-        reservedBy: input.reservedBy,
+        userId: currentUser.id,
         participants: input.participants,
         startTime: new Date(start),
         endTime: new Date(end),
@@ -58,9 +62,17 @@ function createReservationsService({ runInTransaction, now = () => new Date() })
     });
   }
 
-  async function listReservations(query) {
+  async function listReservations(query, currentUser) {
+    const filters = { ...query };
+    if (currentUser.role !== "ADMIN") {
+      if (query.userId !== undefined && query.userId !== currentUser.id) {
+        throw new ForbiddenError("Filtering by userId is available only for ADMIN");
+      }
+      filters.userId = currentUser.id;
+    }
+
     return runInTransaction(async ({ reservations }) => {
-      const { items, total } = await reservations.list(query);
+      const { items, total } = await reservations.list(filters);
       return {
         items,
         meta: { page: query.page, limit: query.limit, total, totalPages: Math.ceil(total / query.limit) },
@@ -68,18 +80,18 @@ function createReservationsService({ runInTransaction, now = () => new Date() })
     });
   }
 
-  async function getReservation(id) {
+  async function getReservation(id, currentUser) {
     return runInTransaction(async ({ reservations }) => {
       const reservation = await reservations.findById(id);
-      if (!reservation) throw new NotFoundError("Reservation");
+      if (!reservation || !canAccess(reservation, currentUser)) throw new NotFoundError("Reservation");
       return reservation;
     });
   }
 
-  async function cancelReservation(id) {
+  async function cancelReservation(id, currentUser) {
     return runInTransaction(async ({ reservations }) => {
       const reservation = await reservations.findById(id);
-      if (!reservation) throw new NotFoundError("Reservation");
+      if (!reservation || !canAccess(reservation, currentUser)) throw new NotFoundError("Reservation");
       const target = "CANCELLED";
 
       if (reservation.status === target) return reservation;

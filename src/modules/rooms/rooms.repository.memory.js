@@ -21,6 +21,17 @@ function createInMemoryRoomsRepository(state) {
       state.rooms.push(room);
       return withBuilding(room);
     },
+    async update(id, changes) {
+      const r = state.rooms.find((x) => x.id === id);
+      Object.assign(r, Object.fromEntries(Object.entries(changes).filter(([, v]) => v !== undefined)));
+      return withBuilding(r);
+    },
+    async delete(id) {
+      if (state.reservations.some((r) => r.roomId === id)) {
+        throw Object.assign(new Error("room in use"), { code: "23503" });
+      }
+      state.rooms = state.rooms.filter((r) => r.id !== id);
+    },
     async lockById() {
     },
   };

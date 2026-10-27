@@ -1,0 +1,25 @@
+$ psql: \d users
+                                        Table "public.users"
+    Column     |           Type           | Collation | Nullable |              Default              
+---------------+--------------------------+-----------+----------+-----------------------------------
+ id            | integer                  |           | not null | nextval('users_id_seq'::regclass)
+ email         | character varying(254)   |           | not null | 
+ password_hash | character varying(100)   |           | not null | 
+ role          | character varying(20)    |           | not null | 'USER'::character varying
+ created_at    | timestamp with time zone |           | not null | CURRENT_TIMESTAMP
+Indexes:
+    "users_pkey" PRIMARY KEY, btree (id)
+    "users_email_unique" UNIQUE CONSTRAINT, btree (email)
+Check constraints:
+    "users_role_check" CHECK (role::text = ANY (ARRAY['USER'::character varying, 'ADMIN'::character varying]::text[]))
+Referenced by:
+    TABLE "reservations" CONSTRAINT "reservations_user_id_foreign" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
+
+$ psql: SELECT id, email, password_hash, role, created_at FROM users ORDER BY id;
+ id |          email           |                        password_hash                         | role  |          created_at           
+----+--------------------------+--------------------------------------------------------------+-------+-------------------------------
+  1 | admin@example.com        | $2b$12$hd9vITxBMJUbFx7.7T8Gceab7GUkwccm1oZsOugdNz2AfncQxETMO | ADMIN | 2026-10-27 15:19:59.841092+00
+  2 | jan.kowalski@example.com | $2b$12$kRcGTeDiHVis2UcN71jIROmFodHf9G.InLlR2UjbkO13xkXytEZAG | USER  | 2026-10-27 15:19:59.841092+00
+  3 | anna.nowak@example.com   | $2b$12$d.mDzjyqQxW.rMkfITfMt.MBdxVQDGesgtU.wlzw2evIVrInkWuqa | USER  | 2026-10-27 15:19:59.841092+00
+(3 rows)
+
