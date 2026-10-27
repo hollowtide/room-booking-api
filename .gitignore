@@ -2,3 +2,4 @@ node_modules/
 .env
 Screenshot*.png
 *.pdf
+*.log
