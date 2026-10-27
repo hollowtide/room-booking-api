@@ -23,6 +23,9 @@ Konta z seeda (tylko środowisko developerskie):
 | jan.kowalski@example.com | jan-password-123 | USER |
 | anna.nowak@example.com | anna-password-123 | USER |
 
+Testy w Postmanie: zaimportuj `postman/room-booking-lab4.postman_collection.json` (File → Import), uruchom folder
+„0. Zaloguj się”, a potem foldery 1–4. Tokeny zapisują się same, każdy request ma w nazwie oczekiwany status.
+
 Skrypty: `npm run permissions` (tabela uprawnień), `npm run register-race` (równoległe rejestracje),
 `npm run double-booking` (race condition z zadania 03).
 
