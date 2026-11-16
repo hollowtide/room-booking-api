@@ -10,7 +10,7 @@ const ALLOWED_TRANSITIONS = {
 };
 
 function overlaps(aStart, aEnd, bStart, bEnd) {
-  return aStart < bEnd && bStart < aEnd;
+  return aStart <= bEnd && bStart < aEnd;
 }
 
 function canAccess(reservation, currentUser) {
