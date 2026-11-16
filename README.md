@@ -1,21 +1,29 @@
-# ZTPAI – Zadanie 04 – Room Booking API: authentication, authorization i konfiguracja
+# Room Booking API
 
-Node.js + Express 5 + Zod + PostgreSQL 16 (Docker) + Knex + bcryptjs + jsonwebtoken + swagger-ui-express.
+[![CI](https://github.com/hollowtide/room-booking-api/actions/workflows/ci.yml/badge.svg)](https://github.com/hollowtide/room-booking-api/actions/workflows/ci.yml)
 
-## Uruchomienie
+REST API do rezerwacji sal (ZTPAI, zadania 01–05): Node.js 22, Express 5, Zod, PostgreSQL 16, Knex,
+JWT + role, event bus z audit logiem, testy (Jest + Supertest), Docker Compose i GitHub Actions.
+
+## Uruchomienie od zera (Docker)
+
+Wymagany tylko Docker (z Docker Compose v2).
 
 ```bash
-cp .env.example .env          # uzupełnij DATABASE_URL i JWT_SECRET (min. 32 znaki)
-npm install
-docker compose up -d
-npm run migrate
-npm run seed
-npm start                     # Swagger UI: http://localhost:3000/api/docs
+git clone https://github.com/hollowtide/room-booking-api.git
+cd room-booking-api
+cp .env.example .env
+docker compose up --build
 ```
 
-Losowy JWT_SECRET: `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`
+- API: http://localhost:3000
+- Swagger UI: http://localhost:3000/api/docs
 
-Konta z seeda (tylko środowisko developerskie):
+Migracje uruchamiają się same przy starcie kontenera `api`. Konto ADMIN i dane przykładowe (seed):
+
+```bash
+docker compose exec api npx knex seed:run
+```
 
 | Email | Hasło | Rola |
 |---|---|---|
@@ -23,29 +31,48 @@ Konta z seeda (tylko środowisko developerskie):
 | jan.kowalski@example.com | jan-password-123 | USER |
 | anna.nowak@example.com | anna-password-123 | USER |
 
-Testy w Postmanie: zaimportuj `postman/room-booking-lab4.postman_collection.json` (File → Import), uruchom folder
-„0. Zaloguj się”, a potem foldery 1–4. Tokeny zapisują się same, każdy request ma w nazwie oczekiwany status.
+Zatrzymanie: `docker compose down` (dane zostają w volume `pgdata`; `docker compose down -v` je usuwa).
 
-Skrypty: `npm run permissions` (tabela uprawnień), `npm run register-race` (równoległe rejestracje),
-`npm run double-booking` (race condition z zadania 03).
+Port 5432 musi być wolny – jeżeli działa inny PostgreSQL, zatrzymaj go albo ustaw w `.env` np. `DB_PORT=5433`.
 
-## Decyzje
+## Testy
 
-**`?userId=` dla USERa → 403** (chyba że to jego własne id). Cicha ignorowana wartość zwróciłaby własne rezerwacje
-użytkownika jako odpowiedź na pytanie o kogoś innego – klient dostałby mylący wynik. 403 jasno mówi, że ten filtr
-jest dostępny tylko dla administratora. Niezależnie od parametrów backend zawsze dokłada `user_id = <id z tokenu>`
-dla roli USER.
+```bash
+npm ci
+npm run test:unit          # bez bazy danych (repositories in-memory)
+docker compose up -d db    # baza dla testów integracyjnych
+npm run test:integration   # baza roombooking_test - tworzona automatycznie, schemat z migracji
+npm test                   # wszystko
+```
 
-**Cudza rezerwacja → 404, nie 403.** Rezerwacje są prywatne – 403 zdradzałoby, że rezerwacja o tym id istnieje.
+Testy integracyjne używają `TEST_DATABASE_URL`
+(domyślnie `postgres://postgres:postgres@localhost:5432/roombooking_test`) i nigdy bazy deweloperskiej.
 
-**Migracja `user_id`** działa na bazie z danymi: dodaje kolumnę jako nullable, dla każdej wartości `reserved_by`
-tworzy konto (email z imienia i nazwiska, losowe hasło – konto trzeba aktywować resetem hasła), uzupełnia `user_id`,
-ustawia NOT NULL i dopiero wtedy usuwa `reserved_by`. Funkcja `down` odtwarza `reserved_by` z emaila użytkownika.
+## Uruchomienie bez Dockera dla API
 
-**Login** – zły email i złe hasło dają ten sam kod `INVALID_CREDENTIALS` i ten sam komunikat. Dla nieistniejącego
-emaila i tak liczony jest bcrypt (na stałym hashu), żeby czas odpowiedzi nie zdradzał, czy konto istnieje.
+```bash
+docker compose up -d db
+npm ci
+npm run migrate && npm run seed
+npm start
+```
 
-**Wygasły token** → 401 z kodem `TOKEN_EXPIRED` (frontend wie, że wystarczy ponowne logowanie). Inne problemy
-z tokenem → `UNAUTHORIZED` / `INVALID_TOKEN`.
+## Endpointy
 
-**Konfiguracja** – jedyne miejsce czytające `process.env` to `src/config/index.js` (walidacja Zod, fail fast).
+| Metoda | Ścieżka | Dostęp |
+|---|---|---|
+| POST | /api/auth/register, /api/auth/login | publiczne |
+| GET | /api/auth/me | zalogowany |
+| GET | /api/buildings, /api/buildings/:id, /api/buildings/:id/rooms | zalogowany |
+| POST, PATCH, DELETE | /api/buildings, /api/rooms | ADMIN |
+| GET | /api/rooms, /api/rooms/:id | zalogowany |
+| GET, POST | /api/reservations | USER – własne, ADMIN – wszystkie |
+| GET | /api/reservations/:id | właściciel albo ADMIN |
+| PATCH | /api/reservations/:id/cancel | właściciel albo ADMIN |
+| GET | /api/admin/audit-log?eventType=&page=&limit= | ADMIN |
+
+## Eventy
+
+Service rezerwacji publikuje po zatwierdzeniu transakcji `reservation.created` i `reservation.cancelled`.
+Listenery zapisują je do tabeli `audit_log` (jsonb) i wysyłają (symulowane) powiadomienie właścicielowi,
+gdy ADMIN anuluje jego rezerwację. Błąd listenera jest logowany i nie wpływa na odpowiedź API.
