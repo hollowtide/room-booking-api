@@ -1,0 +1,29 @@
+$ psql -c "DROP DATABASE IF EXISTS roombooking_test"   # start od zera - brak bazy testowej
+
+$ npm run test:integration -- --verbose
+
+> room-booking-api@5.0.0 test:integration
+> jest --runInBand tests/integration --verbose
+
+PASS tests/integration/api.test.js
+  Auth
+    ✓ rejestracja + logowanie + GET /api/auth/me (177 ms)
+    ✓ 401 bez tokenu (23 ms)
+  Reservations API
+    ✓ POST /api/reservations → 201, nagłówek Location i rekord w bazie (184 ms)
+    ✓ 400 z details dla błędnego body (176 ms)
+    ✓ 409 ROOM_ALREADY_BOOKED dla nakładającej się rezerwacji (368 ms)
+    ✓ 404 dla USER pobierającego cudzą rezerwację (326 ms)
+    ✓ pagination: meta.total i liczba elementów w data dla mniejszego limit (264 ms)
+  Role
+    ✓ 403 dla USER próbującego utworzyć salę (193 ms)
+    ✓ ADMIN może utworzyć salę (201) (33 ms)
+
+PASS tests/integration/auditLog.test.js
+  ✓ audit log: utworzenie → kolizja → anulowanie przez ADMINa → ponowne anulowanie (281 ms)
+
+Test Suites: 2 passed, 2 total
+Tests:       10 passed, 10 total
+Snapshots:   0 total
+Time:        3.239 s, estimated 4 s
+Ran all test suites matching tests/integration.
