@@ -1,0 +1,30 @@
+# 1. Jan tworzy rezerwację
+$ curl -X POST http://localhost:3000/api/reservations -H 'Authorization: Bearer <jan>' -d '{"roomId":3,"participants":10,"startTime":"2026-12-15T10:00:00Z","endTime":"2026-12-15T12:00:00Z"}'
+{"id":6,"room":{"id":3,"name":"201","building":{"id":1,"name":"Budynek A"}},"user":{"id":2,"email":"jan.kowalski@example.com"},"participants":10,"startTime":"2026-12-15T10:00:00.000Z","endTime":"2026-12-15T12:00:00.000Z","status":"CONFIRMED","createdAt":"2026-11-16T17:28:10.745Z","cancelledAt":null}
+[201]
+
+# 2. Nieudana próba kolizji (ten sam termin)
+{"error":{"code":"ROOM_ALREADY_BOOKED","message":"Room is already booked in this time range","requestId":"56566c2c-2a6f-4b13-ad63-4229ae8851bb"}}
+[409]
+
+# 3. ADMIN anuluje rezerwację Jana
+{"id":6,"room":{"id":3,"name":"201","building":{"id":1,"name":"Budynek A"}},"user":{"id":2,"email":"jan.kowalski@example.com"},"participants":10,"startTime":"2026-12-15T10:00:00.000Z","endTime":"2026-12-15T12:00:00.000Z","status":"CANCELLED","createdAt":"2026-11-16T17:28:10.745Z","cancelledAt":"2026-11-16T17:28:10.773Z"}
+[200]
+
+# 4. Ponowne anulowanie (idempotentne)
+{"id":6,"room":{"id":3,"name":"201","building":{"id":1,"name":"Budynek A"}},"user":{"id":2,"email":"jan.kowalski@example.com"},"participants":10,"startTime":"2026-12-15T10:00:00.000Z","endTime":"2026-12-15T12:00:00.000Z","status":"CANCELLED","createdAt":"2026-11-16T17:28:10.745Z","cancelledAt":"2026-11-16T17:28:10.773Z"}
+[200]
+
+$ psql -c "SELECT id, event_type, payload, created_at FROM audit_log ORDER BY id;"
+ id |      event_type       |                                                            payload                                                             |         created_at         
+----+-----------------------+--------------------------------------------------------------------------------------------------------------------------------+----------------------------
+  1 | reservation.created   | {"roomId": 3, "userId": 2, "endTime": "2026-12-15T12:00:00.000Z", "startTime": "2026-12-15T10:00:00.000Z", "reservationId": 6} | 2026-11-16 17:28:10.752+00
+  2 | reservation.cancelled | {"roomId": 3, "userId": 2, "cancelledBy": 1, "reservationId": 6}                                                               | 2026-11-16 17:28:10.776+00
+(2 rows)
+
+# Logi servera:
+[cb5fe568-c96d-4ce3-a0c4-777121bbf159] POST /api/reservations -> 201 (16.1 ms)
+[56566c2c-2a6f-4b13-ad63-4229ae8851bb] POST /api/reservations -> 409 (5.2 ms)
+[aed1bbbb-0718-4359-8485-03c64cd6b2e4] PATCH /api/reservations/6/cancel -> 200 (7.3 ms)
+[notification] to: jan.kowalski@example.com - your reservation #6 (room 3) was cancelled by an administrator
+[c6664ca2-0068-411d-bdf9-2a3baf11be20] PATCH /api/reservations/6/cancel -> 200 (3.9 ms)

@@ -2,7 +2,7 @@ const bcrypt = require("bcryptjs");
 const config = require("../../config");
 
 exports.seed = async function (knex) {
-  await knex.raw("TRUNCATE reservations, rooms, buildings, users RESTART IDENTITY CASCADE");
+  await knex.raw("TRUNCATE audit_log, reservations, rooms, buildings, users RESTART IDENTITY CASCADE");
 
   const hash = (password) => bcrypt.hash(password, config.BCRYPT_ROUNDS);
 

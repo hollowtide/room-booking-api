@@ -1,0 +1,33 @@
+$ git diff src/events/auditListeners.js   # tymczasowo - listener rzuca wyjątek
+diff --git a/src/events/auditListeners.js b/src/events/auditListeners.js
+index 3841521..9846bae 100644
+--- a/src/events/auditListeners.js
++++ b/src/events/auditListeners.js
+@@ -2,6 +2,7 @@ const AUDITED_EVENTS = ["reservation.created", "reservation.cancelled"];
+ 
+ function registerAuditListeners(eventBus, db) {
+   const save = async (event) => {
++    throw new Error("audit_log is temporarily unavailable (demo)");
+     await db("audit_log").insert({
+       event_type: event.name,
+       payload: event.payload,
+
+$ curl -X POST http://localhost:3000/api/reservations -H 'Authorization: Bearer <jan>' -d '{"roomId":3, ... 2026-12-16 ...}'
+{"id":7,"room":{"id":3,"name":"201","building":{"id":1,"name":"Budynek A"}},"user":{"id":2,"email":"jan.kowalski@example.com"},"participants":10,"startTime":"2026-12-16T10:00:00.000Z","endTime":"2026-12-16T12:00:00.000Z","status":"CONFIRMED","createdAt":"2026-11-16T17:28:22.564Z","cancelledAt":null}
+[201]
+
+# Logi servera:
+Room Booking API działa na http://localhost:3000 (dokumentacja: /api/docs)
+[c9216104-31c7-4fb0-8099-ec4028e36463] POST /api/auth/login -> 200 (344.4 ms)
+[event:reservation.created] handler failed: Error: audit_log is temporarily unavailable (demo)
+    at save (/Users/mateuszjanicki/Desktop/studia/ztpai/lab5/src/events/auditListeners.js:5:11)
+    at /Users/mateuszjanicki/Desktop/studia/ztpai/lab5/src/events/eventBus.js:14:23
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[e36950e1-d0bf-4beb-8712-546c6ee85b9f] POST /api/reservations -> 201 (14.6 ms)
+
+$ psql -c "SELECT count(*) FROM audit_log WHERE payload->>'reservationId' = '7';"
+ count 
+-------
+     0
+(1 row)
+
