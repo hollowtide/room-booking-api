@@ -1,0 +1,42 @@
+$ service postgresql status
+16/main (port 5432): down
+
+$ npm run test:unit -- --verbose
+
+> room-booking-api@5.0.0 test:unit
+> jest tests/unit --verbose
+
+PASS tests/unit/reservations.service.test.js
+  createReservation - nakładanie się rezerwacji
+    ✓ odrzuca rezerwację, która nakłada się częściowo (koniec) (4 ms)
+    ✓ odrzuca rezerwację, która nakłada się częściowo (początek) (1 ms)
+    ✓ odrzuca rezerwację, która zawiera się w istniejącej (1 ms)
+    ✓ odrzuca rezerwację, która zawiera istniejącą (1 ms)
+    ✓ odrzuca rezerwację, która ma identyczny przedział
+    ✓ pozwala na rezerwację, która styka się końcem (12:00-13:00)
+    ✓ pozwala na rezerwację, która styka się początkiem (09:00-10:00)
+    ✓ pozwala na ten sam przedział w innej sali (1 ms)
+    ✓ anulowana rezerwacja (CANCELLED) nie blokuje przedziału (1 ms)
+  createReservation - pojemność sali
+    ✓ pozwala, gdy participants == capacity (1 ms)
+    ✓ odrzuca, gdy participants == capacity + 1 (1 ms)
+  createReservation - czas trwania
+    ✓ pozwala na rezerwację trwającą dokładnie 15 min (1 ms)
+    ✓ pozwala na rezerwację trwającą dokładnie 8 h
+    ✓ odrzuca rezerwację trwającą 14 min
+    ✓ odrzuca rezerwację trwającą 8 h 1 min (1 ms)
+  cancelReservation
+    ✓ odrzuca anulowanie rezerwacji, która już się rozpoczęła (1 ms)
+    ✓ podwójne anulowanie jest idempotentne - cancelledAt się nie zmienia (1 ms)
+  ownership
+    ✓ obcy USER nie widzi cudzej rezerwacji (NOT_FOUND) (1 ms)
+    ✓ obcy USER nie może anulować cudzej rezerwacji (NOT_FOUND) (1 ms)
+    ✓ ADMIN może pobrać i anulować cudzą rezerwację (1 ms)
+    ✓ USER widzi na liście tylko swoje rezerwacje (1 ms)
+    ✓ USER nie może filtrować po cudzym userId (FORBIDDEN)
+
+Test Suites: 1 passed, 1 total
+Tests:       22 passed, 22 total
+Snapshots:   0 total
+Time:        0.297 s, estimated 1 s
+Ran all test suites matching tests/unit.

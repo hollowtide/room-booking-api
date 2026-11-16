@@ -1,0 +1,76 @@
+$ git diff src/modules/reservations/reservations.service.js
+diff --git a/src/modules/reservations/reservations.service.js b/src/modules/reservations/reservations.service.js
+index eea0478..b2efbe1 100644
+--- a/src/modules/reservations/reservations.service.js
++++ b/src/modules/reservations/reservations.service.js
+@@ -9,7 +9,7 @@ const ALLOWED_TRANSITIONS = {
+ };
+ 
+ function overlaps(aStart, aEnd, bStart, bEnd) {
+-  return aStart < bEnd && bStart < aEnd;
++  return aStart <= bEnd && bStart < aEnd;
+ }
+ 
+ function canAccess(reservation, currentUser) {
+
+$ npm run test:unit
+
+> room-booking-api@5.0.0 test:unit
+> jest tests/unit
+
+FAIL tests/unit/reservations.service.test.js
+  createReservation - nakładanie się rezerwacji
+    ✓ odrzuca rezerwację, która nakłada się częściowo (koniec) (3 ms)
+    ✓ odrzuca rezerwację, która nakłada się częściowo (początek)
+    ✓ odrzuca rezerwację, która zawiera się w istniejącej
+    ✓ odrzuca rezerwację, która zawiera istniejącą (1 ms)
+    ✓ odrzuca rezerwację, która ma identyczny przedział (1 ms)
+    ✕ pozwala na rezerwację, która styka się końcem (12:00-13:00)
+    ✓ pozwala na rezerwację, która styka się początkiem (09:00-10:00) (1 ms)
+    ✓ pozwala na ten sam przedział w innej sali
+    ✓ anulowana rezerwacja (CANCELLED) nie blokuje przedziału
+  createReservation - pojemność sali
+    ✓ pozwala, gdy participants == capacity
+    ✓ odrzuca, gdy participants == capacity + 1 (1 ms)
+  createReservation - czas trwania
+    ✓ pozwala na rezerwację trwającą dokładnie 15 min (1 ms)
+    ✓ pozwala na rezerwację trwającą dokładnie 8 h
+    ✓ odrzuca rezerwację trwającą 14 min
+    ✓ odrzuca rezerwację trwającą 8 h 1 min (1 ms)
+  cancelReservation
+    ✓ odrzuca anulowanie rezerwacji, która już się rozpoczęła
+    ✓ podwójne anulowanie jest idempotentne - cancelledAt się nie zmienia
+  ownership
+    ✓ obcy USER nie widzi cudzej rezerwacji (NOT_FOUND)
+    ✓ obcy USER nie może anulować cudzej rezerwacji (NOT_FOUND) (1 ms)
+    ✓ ADMIN może pobrać i anulować cudzą rezerwację
+    ✓ USER widzi na liście tylko swoje rezerwacje (1 ms)
+    ✓ USER nie może filtrować po cudzym userId (FORBIDDEN) (1 ms)
+
+  ● createReservation - nakładanie się rezerwacji › pozwala na rezerwację, która styka się końcem (12:00-13:00)
+
+    ConflictError: Room is already booked in this time range
+
+      48 |       const conflict = active.some((r) => overlaps(start, end, r.startTime.getTime(), r.endTime.getTime()));
+      49 |       if (conflict) {
+    > 50 |         throw new ConflictError("Room is already booked in this time range", "ROOM_ALREADY_BOOKED");
+         |               ^
+      51 |       }
+      52 |
+      53 |       return reservations.create({
+
+      at src/modules/reservations/reservations.service.js:50:15
+      at tests/unit/reservations.service.test.js:26:21
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 21 passed, 22 total
+Snapshots:   0 total
+Time:        0.331 s, estimated 1 s
+Ran all test suites matching tests/unit.
+
+$ git checkout src/modules/reservations/reservations.service.js && npm run test:unit
+Test Suites: 1 passed, 1 total
+Tests:       22 passed, 22 total
+Snapshots:   0 total
+Time:        0.195 s, estimated 1 s
+Ran all test suites matching tests/unit.
